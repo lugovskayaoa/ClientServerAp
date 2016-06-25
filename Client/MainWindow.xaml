@@ -1,0 +1,82 @@
+﻿<Window x:Class="Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wtk="clr-namespace:Xceed.Wpf.Toolkit;assembly=Xceed.Wpf.Toolkit"
+        DataContext="{StaticResource MainViewModel}"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <DataGrid Grid.Column="0"
+                  RowHeight="30"
+                  RowHeaderWidth="0"
+                  SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                  GridLinesVisibility="None"
+                  AutoGenerateColumns="False"
+                  ItemsSource="{Binding Contacts}">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Контакты"                                   
+                                    Binding="{Binding Path=Adress}"
+                                    Width="150" />
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="50" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--wtk:RichTextBox Grid.Row="0"
+                             Grid.ColumnSpan="2"
+                             Width="Auto"
+                             Text="{Binding Contacts.Dialog}" /-->
+            <DataGrid Grid.Row="0"
+                      Grid.ColumnSpan="2"
+                      AutoGenerateColumns="False"
+                      RowHeight="30"
+                      HeadersVisibility="None"
+                      GridLinesVisibility="None"
+                      ItemsSource="{Binding SelectedUser.Dialog}"
+                      Background="White" >
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding User}"
+                                        Width="Auto" />
+                    <DataGridTextColumn Binding="{Binding Text}"
+                                        Width="*" />
+                    <DataGridTextColumn Binding="{Binding Time}"
+                                        Width="Auto" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <TextBox Grid.Row="1" 
+                     Grid.Column="0"
+                     Text="{Binding Text, Mode=TwoWay}"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     BorderThickness="0"/>
+            <Button Grid.Row="1"
+                    Command="{Binding SendMessageCommand}"
+                    Grid.Column="1"
+                    BorderThickness="0"
+                    Background="White">
+                <Image Source="Images/send.png" Margin="8"/>
+            </Button>
+
+        </Grid>
+
+
+    </Grid>
+</Window>
