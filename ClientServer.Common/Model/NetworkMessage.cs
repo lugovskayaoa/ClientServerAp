@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace ClientServer.Common.Model
 {
+    [Serializable()]
     public class NetworkMessage
     {
         public IPEndPoint FromPoint;

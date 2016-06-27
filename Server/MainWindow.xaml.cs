@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Windows;
 using ClientServer.Common.Helpers;
+using ClientServer.Common.Model;
 
 namespace Server
 {
@@ -45,10 +46,12 @@ namespace Server
             ThreadPool.SetMaxThreads(_maxThreadsCount, _maxThreadsCount);
             ThreadPool.SetMinThreads(2, 2);
 
-            AcceptConnections();
+            ThreadPool.QueueUserWorkItem(AcceptConnections);
+
+            //AcceptConnections();
         }
 
-        private void AcceptConnections()
+        private void AcceptConnections(Object stateInfo)
         {
             while (true)
             {
@@ -65,48 +68,59 @@ namespace Server
             var client = (TcpClient)stateInfo;
 
             _tcpClients.Add(client);
-
-            NetworkStream stream = client.GetStream();
-
+           
             var clientList = new ObservableCollection<EndPoint>(_tcpClients.Select(x => x.Client.RemoteEndPoint).ToList());
+
+            //передаем новому клиенту список слиентов сети
+            var stream = client.GetStream();
 
             var data = Helper.ObjectToByteArray(clientList);
 
             stream.Write(data, 0, data.Length);
+
+            //передаем остальным клиентам сети данные нового клиента
+            foreach (var tcpClient in _tcpClients)
+            {
+                if (tcpClient == client)
+                    break; 
+                    
+                NetworkStream tcpClientStream = tcpClient.GetStream();
+
+                var tcpClientData = Helper.ObjectToByteArray(client.Client.RemoteEndPoint);
+
+                tcpClientStream.Write(tcpClientData, 0, tcpClientData.Length);
+            }
+
+            RouteMessage(client);
+
         }
 
-        private void ReceiveMessage(TcpClient client)
+        private void RouteMessage(TcpClient client)
         {
-            /*   // Buffer for reading data
-               Byte[] bytes = new Byte[256];
-               String data;
-
-               NetworkStream stream = client.GetStream();
-
-               int i;
-
-               while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
-               {
-                   // Translate data bytes to a ASCII string.
-                   data = Encoding.ASCII.GetString(bytes, 0, i);
-                   Console.WriteLine("Received: {0}", data);
-
-                   // Process the data sent by the client.
-                   data = data.ToUpper();
-
-                   byte[] msg = Encoding.ASCII.GetBytes(data);
-
-                   // Send back a response.
-                   stream.Write(msg, 0, msg.Length);
-                   Console.WriteLine("Sent: {0}", data);
-               }            */
             NetworkStream stream = client.GetStream();
 
             byte[] bytes = new byte[client.ReceiveBufferSize];
 
             stream.Read(bytes, 0, client.ReceiveBufferSize);
 
-            var message = Helper.ByteArrayToObject(bytes);
+            var message = (NetworkMessage)Helper.ByteArrayToObject(bytes);
+
+            SendMessage(message);
+
+        }
+
+        private void SendMessage(NetworkMessage message)
+        {
+            var client = _tcpClients.FirstOrDefault(x => Equals(x.Client.RemoteEndPoint, message.ToPoint));
+
+            if (client != null)
+            {
+                NetworkStream stream = client.GetStream();
+
+                var data = Helper.ObjectToByteArray(message);
+
+                stream.Write(data, 0, data.Length);                
+            }
 
         }
 

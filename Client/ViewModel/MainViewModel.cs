@@ -5,7 +5,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using Client.Model;
 using ClientServer.Common.Helpers;
 using ClientServer.Common.Model;
@@ -18,14 +20,11 @@ namespace Client.ViewModel
     {
         private TcpClient _client;
         private int _serverPort;
-        private int _clientPort;
         private string _ipAddress;
 
         public MainViewModel()
         {
             _serverPort = 5888;
-            _clientPort = 6888;
-
             _ipAddress = "127.0.0.1";
 
             _client = new TcpClient(_ipAddress, _serverPort);
@@ -47,6 +46,10 @@ namespace Client.ViewModel
                 var iPEndPoint = (IPEndPoint)client;
                 Contacts.Add(new Contact(iPEndPoint));
             }
+
+            Thread ctThread = new Thread(ReceiveMessage);
+            ctThread.Start();
+
         }
 
         #region Properties
@@ -86,17 +89,69 @@ namespace Client.ViewModel
 
         private void SendMessage()
         {
-            SelectedUser.Dialog.Add(new Message(true, Text));
-            Text = "";
+            SelectedUser.Dialog.Add(new Message(true, Text));            
 
             NetworkStream stream = _client.GetStream();
 
-            var message = new NetworkMessage(SelectedUser.Adress, new IPEndPoint(_ipAddress, _port), ); 
+            var message = new NetworkMessage(SelectedUser.Adress, (IPEndPoint)_client.Client.LocalEndPoint, Text); 
 
             var data = Helper.ObjectToByteArray(message);
 
             stream.Write(data, 0, data.Length);
-            
+
+            Text = "";
+        }
+
+        private void ReceiveMessage()
+        {
+            while (true)
+            {                           
+                NetworkStream stream = _client.GetStream();
+
+                byte[] bytes = new byte[_client.ReceiveBufferSize];
+
+                stream.Read(bytes, 0, _client.ReceiveBufferSize);
+
+                var respond = Helper.ByteArrayToObject(bytes);
+
+                if (respond is NetworkMessage)
+                {
+                    var message = (NetworkMessage) respond;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate // <--- HERE
+                    {
+                        var receiver = Contacts.FirstOrDefault(x => x.Adress == message.FromPoint);
+
+                        if (receiver != null)
+                        {
+                            receiver.Dialog.Add(new Message(false, message.Text));
+                        }
+                    });                    
+                }
+                if (respond is EndPoint)
+                {
+                    var client = (EndPoint)Helper.ByteArrayToObject(bytes);
+
+                    App.Current.Dispatcher.Invoke((Action)delegate // <--- HERE
+                    {
+                        var existingClient = Contacts.FirstOrDefault(x => x.Adress == (IPEndPoint) client);
+
+                        if (existingClient != null)
+                        {
+                            Contacts.Remove(existingClient);
+                        }
+                        else
+                        {
+                            Contacts.Add(new Contact((IPEndPoint)client));
+                        }                            
+                    });
+                }
+
+
+
+
+
+            }
         }
 
     }
