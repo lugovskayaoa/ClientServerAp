@@ -5,8 +5,55 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Server"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="Сервер" Height="350" Width="525">
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="4*" />
+            <RowDefinition Height="3*" />
+        </Grid.RowDefinitions>
+        <ToolBar>
+            <StackPanel Orientation="Horizontal">
+                <Button>
+                    <Image Source="Images/play-32.png"
+                           Height="20"
+                           Width="20">
+                    </Image>
+                </Button>
+                <Button>
+                    <Image Source="Images/stop-32.png"
+                           Height="20"
+                           Width="20"></Image>
+                </Button>
+                <Button>
+                    <Image Source="Images/settings-4-32.png"
+                           Height="20"
+                           Width="20"></Image>
+                </Button>
+            </StackPanel>
+        </ToolBar>
+        <DataGrid Grid.Row="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Событие"
+                                    Binding="{Binding Path=Event}"
+                                    Width="200" />
+                <DataGridTextColumn Header="Время"
+                                    Binding="{Binding Path=Time}"
+                                    Width="120" />
+                <DataGridTextColumn Header="Описание"
+                                    Binding="{Binding Path=Description}"
+                                    Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <DataGrid Grid.Row="2">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Клиент"
+                                    Binding="{Binding Path=Event}"
+                                    Width="200" />
+                <DataGridTextColumn Header="Время подключения"
+                                    Binding="{Binding Path=Time}"
+                                    Width="150" />
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
 </Window>

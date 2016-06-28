@@ -6,8 +6,8 @@ namespace Client.Model
 {
     public class Contact : ViewModelBase
     {
-        public IPAddress IpAddress { get; set; } 
-        public int Port { get; set; }
+       /* public IPAddress IpAddress { get; set; } 
+        public int Port { get; set; }*/
 
         public IPEndPoint Adress { get; set; }
 

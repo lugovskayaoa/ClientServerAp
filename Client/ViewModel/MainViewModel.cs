@@ -21,6 +21,8 @@ namespace Client.ViewModel
         private TcpClient _client;
         private int _serverPort;
         private string _ipAddress;
+        private Contact _selectedUser;
+        private string _text;
 
         public MainViewModel()
         {
@@ -28,6 +30,8 @@ namespace Client.ViewModel
             _ipAddress = "127.0.0.1";
 
             _client = new TcpClient(_ipAddress, _serverPort);
+
+            Client = _client;
 
             NetworkStream stream = _client.GetStream();
 
@@ -56,7 +60,7 @@ namespace Client.ViewModel
 
         public ObservableCollection<Contact> Contacts { get; set; }
 
-        private Contact _selectedUser;
+        public TcpClient Client { get; set; }
 
         public Contact SelectedUser
         {
@@ -67,7 +71,6 @@ namespace Client.ViewModel
             }
         }
 
-        private string _text;
         public string Text
          {
              get { return _text; } 
@@ -93,7 +96,7 @@ namespace Client.ViewModel
 
             NetworkStream stream = _client.GetStream();
 
-            var message = new NetworkMessage(SelectedUser.Adress, (IPEndPoint)_client.Client.LocalEndPoint, Text); 
+            var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, SelectedUser.Adress, Text); 
 
             var data = Helper.ObjectToByteArray(message);
 
@@ -118,9 +121,9 @@ namespace Client.ViewModel
                 {
                     var message = (NetworkMessage) respond;
 
-                    App.Current.Dispatcher.Invoke((Action)delegate // <--- HERE
+                    App.Current.Dispatcher.Invoke((Action)delegate 
                     {
-                        var receiver = Contacts.FirstOrDefault(x => x.Adress == message.FromPoint);
+                        var receiver = Contacts.FirstOrDefault(x => Equals(x.Adress, message.FromPoint));
 
                         if (receiver != null)
                         {
@@ -132,9 +135,9 @@ namespace Client.ViewModel
                 {
                     var client = (EndPoint)Helper.ByteArrayToObject(bytes);
 
-                    App.Current.Dispatcher.Invoke((Action)delegate // <--- HERE
+                    App.Current.Dispatcher.Invoke((Action)delegate 
                     {
-                        var existingClient = Contacts.FirstOrDefault(x => x.Adress == (IPEndPoint) client);
+                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, (IPEndPoint) client));
 
                         if (existingClient != null)
                         {
@@ -146,10 +149,6 @@ namespace Client.ViewModel
                         }                            
                     });
                 }
-
-
-
-
 
             }
         }
