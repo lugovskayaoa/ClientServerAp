@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Server"
+        DataContext="{StaticResource MainViewModel}"
         mc:Ignorable="d"
         Title="Сервер" Height="350" Width="525">
     <Grid>
@@ -14,18 +15,18 @@
         </Grid.RowDefinitions>
         <ToolBar>
             <StackPanel Orientation="Horizontal">
-                <Button>
+                <Button Command="{Binding StartServerCommand}">
                     <Image Source="Images/play-32.png"
                            Height="20"
                            Width="20">
                     </Image>
                 </Button>
-                <Button>
+                <Button Command="{Binding StartServerCommand}">
                     <Image Source="Images/stop-32.png"
                            Height="20"
                            Width="20"></Image>
                 </Button>
-                <Button>
+                <Button Command="{Binding SettingsCommand}">
                     <Image Source="Images/settings-4-32.png"
                            Height="20"
                            Width="20"></Image>

@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\Helper.cs" />
+    <Compile Include="Model\NetworkClient.cs" />
     <Compile Include="Model\NetworkMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -4,18 +4,20 @@ using GalaSoft.MvvmLight;
 
 namespace Client.Model
 {
-    public class Contact : ViewModelBase
+    public class Contact 
     {
        /* public IPAddress IpAddress { get; set; } 
         public int Port { get; set; }*/
 
-        public IPEndPoint Adress { get; set; }
+        public EndPoint Adress { get; set; }
 
-        public Contact(IPEndPoint adress)
+        public string Name { get; set; }
+
+        public Contact(EndPoint adress, string name)
         {
             /*IpAddress = address;
             Port = port;*/
-
+            Name = name;
             Adress = adress;
 
             Dialog = new ObservableCollection<Message>();

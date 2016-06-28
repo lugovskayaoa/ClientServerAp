@@ -10,32 +10,46 @@ using System.Threading.Tasks;
 using ClientServer.Common.Helpers;
 using ClientServer.Common.Model;
 using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.Command;
 
 namespace Server.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
         private TcpListener _server;
-        private int _port;
-        private string _name;
-        private IPAddress _ipAddress;
         private int _maxThreadsCount;
-        private ObservableCollection<TcpClient> _tcpClients;
+        private int _port;
+        private IPAddress _ipAddress;
+        private ObservableCollection<NetworkClient> _networkClients;
 
         public MainViewModel()
         {
             _ipAddress = IPAddress.Parse("127.0.0.1");
-            _port = 5888;
+            _port = 45880;
 
             StartServer();
         }
+
+        #region Commands
+
+      /*  public RelayCommand StartServerCommand
+        {
+            get { return new RelayCommand(StartServer);}
+        }
+
+        public RelayCommand StopServerCommand
+        {
+            get { return new RelayCommand(StopServer); }
+        }
+        */
+        #endregion
 
         private void StartServer()
         {
             _server = new TcpListener(_ipAddress, _port);
             _server.Start();
 
-            _tcpClients = new ObservableCollection<TcpClient>();
+            _networkClients = new ObservableCollection<NetworkClient>();
 
             _maxThreadsCount = Environment.ProcessorCount * 4;
 
@@ -63,9 +77,9 @@ namespace Server.ViewModel
         {
             var client = (TcpClient)stateInfo;
 
-            _tcpClients.Add(client);
+            _networkClients.Add(new NetworkClient("имя", client));
 
-            var clientList = new ObservableCollection<EndPoint>(_tcpClients.Where(x => x != client).Select(x => x.Client.RemoteEndPoint).ToList());
+            var clientList = new ObservableCollection<NetworkClient>(_networkClients.Where(x => x.TcpClient.Client.RemoteEndPoint != client.Client.RemoteEndPoint).ToList());
 
             //передаем новому клиенту список клиентов сети
             var stream = client.GetStream();
@@ -75,14 +89,14 @@ namespace Server.ViewModel
             stream.Write(data, 0, data.Length);
 
             //передаем остальным клиентам сети данные нового клиента
-            foreach (var tcpClient in _tcpClients)
+            foreach (var netClient in _networkClients)
             {
-                if (tcpClient == client)
+                if (netClient.TcpClient.Client.RemoteEndPoint == client.Client.RemoteEndPoint)
                     continue;
 
-                NetworkStream tcpClientStream = tcpClient.GetStream();
+                NetworkStream tcpClientStream = netClient.TcpClient.GetStream();
 
-                var tcpClientData = Helper.ObjectToByteArray(client.Client.RemoteEndPoint);
+                var tcpClientData = Helper.ObjectToByteArray(netClient);
 
                 tcpClientStream.Write(tcpClientData, 0, tcpClientData.Length);
             }
@@ -109,11 +123,11 @@ namespace Server.ViewModel
 
         private void SendMessage(NetworkMessage message)
         {
-            var client = _tcpClients.FirstOrDefault(x => Equals(x.Client.RemoteEndPoint, message.ToPoint));
+            var netClient = _networkClients.FirstOrDefault(x => Equals(x.TcpClient.Client.RemoteEndPoint, message.ToPoint));
 
-            if (client != null)
+            if (netClient != null)
             {
-                NetworkStream stream = client.GetStream();
+                NetworkStream stream = netClient.TcpClient.GetStream();
 
                 var data = Helper.ObjectToByteArray(message);
 

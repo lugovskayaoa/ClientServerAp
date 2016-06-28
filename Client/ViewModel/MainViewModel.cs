@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,17 +22,19 @@ namespace Client.ViewModel
         private TcpClient _client;
         private int _serverPort;
         private string _ipAddress;
+        private string _clientName;
         private Contact _selectedUser;
         private string _text;
 
         public MainViewModel()
         {
-            _serverPort = 5888;
+            _serverPort = 45880;
             _ipAddress = "127.0.0.1";
+            _clientName = "имя";
 
             _client = new TcpClient(_ipAddress, _serverPort);
 
-            Client = _client;
+            //Client = new NetworkClient(_clientName, _client);
 
             NetworkStream stream = _client.GetStream();
 
@@ -41,14 +44,13 @@ namespace Client.ViewModel
             // This method blocks until at least one byte is read.
             stream.Read(bytes, 0, _client.ReceiveBufferSize);
 
-            var clientlist = (ObservableCollection<EndPoint>)Helper.ByteArrayToObject(bytes);
+            var networkClients = (ObservableCollection<NetworkClient>)Helper.ByteArrayToObject(bytes);
 
             Contacts = new ObservableCollection<Contact>();
 
-            foreach (var client in clientlist)
+            foreach (var networkClient in networkClients)
             {
-                var iPEndPoint = (IPEndPoint)client;
-                Contacts.Add(new Contact(iPEndPoint));
+                Contacts.Add(new Contact(networkClient.TcpClient.Client.RemoteEndPoint, networkClient.Name));
             }
 
             Thread ctThread = new Thread(ReceiveMessage);
@@ -60,7 +62,7 @@ namespace Client.ViewModel
 
         public ObservableCollection<Contact> Contacts { get; set; }
 
-        public TcpClient Client { get; set; }
+        public NetworkClient Client { get; set; }
 
         public Contact SelectedUser
         {
@@ -80,6 +82,12 @@ namespace Client.ViewModel
              }
          }
 
+        public string ClientName
+        {
+            get { return _clientName; }
+            set { Set(() => ClientName, ref _clientName, value); }
+        }
+
         #endregion
 
         #region Commands()
@@ -96,7 +104,7 @@ namespace Client.ViewModel
 
             NetworkStream stream = _client.GetStream();
 
-            var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, SelectedUser.Adress, Text); 
+            var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, (IPEndPoint)SelectedUser.Adress, Text); 
 
             var data = Helper.ObjectToByteArray(message);
 
@@ -131,13 +139,13 @@ namespace Client.ViewModel
                         }
                     });                    
                 }
-                if (respond is EndPoint)
+                if (respond is NetworkClient)
                 {
-                    var client = (EndPoint)Helper.ByteArrayToObject(bytes);
+                    var networkClient = (NetworkClient)Helper.ByteArrayToObject(bytes);
 
                     App.Current.Dispatcher.Invoke((Action)delegate 
                     {
-                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, (IPEndPoint) client));
+                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, networkClient.TcpClient.Client.RemoteEndPoint));
 
                         if (existingClient != null)
                         {
@@ -145,7 +153,7 @@ namespace Client.ViewModel
                         }
                         else
                         {
-                            Contacts.Add(new Contact((IPEndPoint)client));
+                            Contacts.Add(new Contact(networkClient.TcpClient.Client.RemoteEndPoint, networkClient.Name));
                         }                            
                     });
                 }
