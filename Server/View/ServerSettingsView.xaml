@@ -1,0 +1,53 @@
+﻿<Window x:Class="Server.View.ServerSettingsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Настройки" Height="150" Width="350">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="IP адрес"
+                   Grid.Row="0"
+                   Grid.Column="0"
+                   Style="{StaticResource CommonTextBlockStyle}" />
+        <TextBox Grid.Row="0"
+                 Grid.Column="1"
+                 Text="{Binding IP, Mode=TwoWay}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
+        <TextBlock Text="Порт"
+                   Grid.Row="1"
+                   Grid.Column="0"
+                   Style="{StaticResource CommonTextBlockStyle}" />
+        <TextBox Grid.Row="1"
+                 Grid.Column="1"
+                 Text="{Binding IP, Mode=TwoWay}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
+        <TextBlock Text="Сетевой интерфейс"
+                   Grid.Row="2"
+                   Grid.Column="0"
+                   Style="{StaticResource CommonTextBlockStyle}" />
+        <TextBox Grid.Row="2"
+                 Grid.Column="1"
+                 Text="{Binding IP, Mode=TwoWay}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
+        <StackPanel Grid.Row="3"
+                    Grid.ColumnSpan="2"
+                    Grid.Column="0"
+                    Style="{StaticResource BottomStackPanelStyle}">
+            <Button Content="Сохранить"
+                    Command="{Binding SaveCommand}"
+                    IsDefault="True"
+                    Style="{StaticResource DialogButton}" />
+            <Button Content="Отмена"
+                    IsCancel="True"
+                    Style="{StaticResource DialogButton}" />
+        </StackPanel>
+    </Grid>
+</Window>

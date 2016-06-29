@@ -1,24 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ClientServer.Common.Model
+namespace Server.Model
 {
-    [Serializable()]
-    public class NetworkClient
+    public class ClientOnServer
     {
-        public NetworkClient(string name, EndPoint adress)
+        public ClientOnServer(string name, TcpClient client)
         {
             Name = name;
-            Adress = adress;
+            TcpClient = client;
         }
         public string Name { get; set; }
 
-        public EndPoint Adress { get; set; }
-
+        public TcpClient TcpClient { get; set; }
     }
 }

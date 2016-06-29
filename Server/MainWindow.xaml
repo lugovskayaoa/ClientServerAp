@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Server"
         DataContext="{StaticResource MainViewModel}"
         mc:Ignorable="d"
-        Title="Сервер" Height="350" Width="525">
+        Title="Сервер" Height="400" Width="700">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
@@ -21,7 +21,7 @@
                            Width="20">
                     </Image>
                 </Button>
-                <Button Command="{Binding StartServerCommand}">
+                <Button Command="{Binding StopServerCommand}">
                     <Image Source="Images/stop-32.png"
                            Height="20"
                            Width="20"></Image>
@@ -33,27 +33,34 @@
                 </Button>
             </StackPanel>
         </ToolBar>
-        <DataGrid Grid.Row="1">
+        <DataGrid Grid.Row="1"
+                  AutoGenerateColumns="False"
+                  ItemsSource="{Binding ServerEvents}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Событие"
-                                    Binding="{Binding Path=Event}"
-                                    Width="200" />
+                                    Binding="{Binding Path=Name}"
+                                    Width="Auto" />
                 <DataGridTextColumn Header="Время"
                                     Binding="{Binding Path=Time}"
-                                    Width="120" />
+                                    Width="Auto" />
                 <DataGridTextColumn Header="Описание"
                                     Binding="{Binding Path=Description}"
                                     Width="*" />
             </DataGrid.Columns>
         </DataGrid>
-        <DataGrid Grid.Row="2">
+        <DataGrid Grid.Row="2"
+                  AutoGenerateColumns="False"
+                  ItemsSource="{Binding ClientsOnServer}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Клиент"
-                                    Binding="{Binding Path=Event}"
-                                    Width="200" />
+                                    Binding="{Binding Path=TcpClient.Client.RemoteEndPoint}"
+                                    Width="Auto" />                
+                <DataGridTextColumn Header="Имя"
+                                    Binding="{Binding Path=Name}"
+                                    Width="Auto" />
                 <DataGridTextColumn Header="Время подключения"
                                     Binding="{Binding Path=Time}"
-                                    Width="150" />
+                                    Width="*" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

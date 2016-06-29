@@ -21,7 +21,7 @@ namespace Client.ViewModel
     {
         private TcpClient _client;
         private int _serverPort;
-        private string _ipAddress;
+        private string _serverIP;
         private string _clientName;
         private Contact _selectedUser;
         private string _text;
@@ -29,29 +29,18 @@ namespace Client.ViewModel
         public MainViewModel()
         {
             _serverPort = 45880;
-            _ipAddress = "127.0.0.1";
-            _clientName = "имя";
+            _serverIP = "127.0.0.1";
 
-            _client = new TcpClient(_ipAddress, _serverPort);
+            _client = new TcpClient(_serverIP, _serverPort);
 
-            //Client = new NetworkClient(_clientName, _client);
+            _clientName = _client.Client.LocalEndPoint.ToString();
 
-            NetworkStream stream = _client.GetStream();
+            //отправка имени
+            var nameStream = _client.GetStream();
 
-            byte[] bytes = new byte[_client.ReceiveBufferSize];
+            var data = Helper.ObjectToByteArray(_clientName);
 
-            // Read can return anything from 0 to numBytesToRead. 
-            // This method blocks until at least one byte is read.
-            stream.Read(bytes, 0, _client.ReceiveBufferSize);
-
-            var networkClients = (ObservableCollection<NetworkClient>)Helper.ByteArrayToObject(bytes);
-
-            Contacts = new ObservableCollection<Contact>();
-
-            foreach (var networkClient in networkClients)
-            {
-                Contacts.Add(new Contact(networkClient.TcpClient.Client.RemoteEndPoint, networkClient.Name));
-            }
+            nameStream.Write(data, 0, data.Length);
 
             Thread ctThread = new Thread(ReceiveMessage);
             ctThread.Start();
@@ -59,6 +48,24 @@ namespace Client.ViewModel
         }
 
         #region Properties
+
+        public string ServerIP
+        {
+            get { return _serverIP; }
+            set { Set(() => ServerIP, ref _serverIP, value); }
+        }
+
+        public int ServerPort
+        {
+            get { return _serverPort; }
+            set { Set(() => ServerPort, ref _serverPort, value); }
+        }
+
+        public string ClientName
+        {
+            get { return _clientName; }
+            set { Set(() => ClientName, ref _clientName, value); }
+        }
 
         public ObservableCollection<Contact> Contacts { get; set; }
 
@@ -82,12 +89,6 @@ namespace Client.ViewModel
              }
          }
 
-        public string ClientName
-        {
-            get { return _clientName; }
-            set { Set(() => ClientName, ref _clientName, value); }
-        }
-
         #endregion
 
         #region Commands()
@@ -102,7 +103,7 @@ namespace Client.ViewModel
         {
             SelectedUser.Dialog.Add(new Message(true, Text));            
 
-            NetworkStream stream = _client.GetStream();
+            var stream = _client.GetStream();
 
             var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, (IPEndPoint)SelectedUser.Adress, Text); 
 
@@ -116,20 +117,28 @@ namespace Client.ViewModel
         private void ReceiveMessage()
         {
             while (true)
-            {                           
-                NetworkStream stream = _client.GetStream();
+            {
+                var respond = GetDataFromStream(_client);
 
-                byte[] bytes = new byte[_client.ReceiveBufferSize];
+                //получение списка клиентов
+                if (respond is ObservableCollection<NetworkClient>)
+                {
+                    var networkClients = (ObservableCollection<NetworkClient>)respond;
 
-                stream.Read(bytes, 0, _client.ReceiveBufferSize);
+                    Contacts = new ObservableCollection<Contact>();
 
-                var respond = Helper.ByteArrayToObject(bytes);
+                    foreach (var networkClient in networkClients)
+                    {
+                        Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
+                    }                    
+                }
 
+                //получение сообщения
                 if (respond is NetworkMessage)
                 {
                     var message = (NetworkMessage) respond;
 
-                    App.Current.Dispatcher.Invoke((Action)delegate 
+                    App.Current.Dispatcher.Invoke(delegate 
                     {
                         var receiver = Contacts.FirstOrDefault(x => Equals(x.Adress, message.FromPoint));
 
@@ -139,13 +148,15 @@ namespace Client.ViewModel
                         }
                     });                    
                 }
+
+                //получение информации о клиенте
                 if (respond is NetworkClient)
                 {
-                    var networkClient = (NetworkClient)Helper.ByteArrayToObject(bytes);
+                    var networkClient = (NetworkClient)respond;
 
-                    App.Current.Dispatcher.Invoke((Action)delegate 
+                    App.Current.Dispatcher.Invoke(delegate 
                     {
-                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, networkClient.TcpClient.Client.RemoteEndPoint));
+                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, networkClient.Adress));
 
                         if (existingClient != null)
                         {
@@ -153,7 +164,7 @@ namespace Client.ViewModel
                         }
                         else
                         {
-                            Contacts.Add(new Contact(networkClient.TcpClient.Client.RemoteEndPoint, networkClient.Name));
+                            Contacts.Add(new Contact( networkClient.Name, networkClient.Adress));
                         }                            
                     });
                 }
@@ -161,5 +172,24 @@ namespace Client.ViewModel
             }
         }
 
+        private void SendData(TcpClient client, object obj)
+        {
+            var nameStream = client.GetStream();
+
+            var data = Helper.ObjectToByteArray(obj);
+
+            nameStream.Write(data, 0, data.Length);            
+        }
+
+        private object GetDataFromStream(TcpClient client)
+        {
+            var stream = client.GetStream();
+
+            byte[] bytes = new byte[client.ReceiveBufferSize];
+
+            stream.Read(bytes, 0, client.ReceiveBufferSize);
+
+            return Helper.ByteArrayToObject(bytes);           
+        }
     }
 }
