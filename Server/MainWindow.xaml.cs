@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
+﻿using System.Net;
 using System.Windows;
-using ClientServer.Common.Helpers;
-using ClientServer.Common.Model;
+using Server.View;
+using Server.ViewModel;
 
 namespace Server
 {

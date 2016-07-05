@@ -12,18 +12,14 @@
                 Value="5,5,5,5" />
     </Style>
 
-    <Style TargetType="xctk:DoubleUpDown"
-           x:Key="CommonDoubleUpDownStyle">
+    <Style TargetType="ComboBox"
+           x:Key="CommonComboBoxStyle">
         <Setter Property="Margin"
-                Value="5,3,5,3" />
-        <Setter Property="VerticalAlignment"
-                Value="Center" />
-        <Setter Property="HorizontalAlignment"
-                Value="Stretch" />
+                Value="5,5,5,5" />
         <Setter Property="Height"
-                Value="22" />
+                Value="25" />
     </Style>
-
+    
     <Style TargetType="TextBox"
            x:Key="CommonTextBoxStyle">
         <Setter Property="Margin"
@@ -36,18 +32,6 @@
                 Value="22" />
     </Style>
 
-    <Style TargetType="xctk:WatermarkTextBox"
-           x:Key="CommonWatermarkTextBoxStyle">
-        <Setter Property="Margin"
-                Value="5,5,5,5" />
-        <Setter Property="VerticalAlignment"
-                Value="Center" />
-        <Setter Property="HorizontalAlignment"
-                Value="Stretch" />
-        <Setter Property="Height"
-                Value="25" />
-    </Style>
-
     <Style TargetType="Image"
            x:Key="CommonImageStyle">
         <Setter Property="Width"
@@ -58,18 +42,6 @@
                 Value="5,0,5,0"></Setter>
         <Setter Property="Stretch"
                 Value="Fill" />
-    </Style>
-
-    <Style TargetType="xctk:ColorPicker"
-           x:Key="CommonColorPickerStyle">
-        <Setter Property="Margin"
-                Value="5,5,5,5"></Setter>
-        <Setter Property="VerticalAlignment"
-                Value="Center" />
-        <Setter Property="HorizontalAlignment"
-                Value="Stretch" />
-        <Setter Property="Height"
-                Value="22" />
     </Style>
 
     <Style TargetType="CheckBox"
@@ -104,31 +76,32 @@
                 Value="23" />
     </Style>
 
+    <Style TargetType="Button"
+           x:Key="ImageButton">
+        <Setter Property="Margin"
+                Value="5,0,5,0" />
+        <Setter Property="Width"
+                Value="30" />
+        <Setter Property="Height"
+                Value="30" />
+    </Style>
     
     <Style TargetType="GroupBox"
            x:Key="GroupBoxStyle">
-        <Setter Property="BorderBrush"
-                Value="#FFBDBDBD"></Setter>
-        <Setter Property="Margin"
-                Value="5"></Setter>
-        <Setter Property="Padding"
-                Value="5"></Setter>
+        <Setter Property="BorderBrush" Value="#FFBDBDBD"></Setter>
+        <Setter Property="Margin" Value="5"></Setter>
+        <Setter Property="Padding" Value="5"></Setter>
     </Style>
-
-    <Style TargetType="Grid"
-           x:Key="MainGridStyle">
+    
+    <Style TargetType="Grid" x:Key="MainGridStyle">
         <Setter Property="Background"
-                Value="#FFF1EFEF" />
+                Value="#FFF1EFEF"/>
     </Style>
-
-    <Style TargetType="TextBlock"
-           x:Key="ErrorTextBlockStyle">
-        <Setter Property="Foreground"
-                Value="Crimson" />
-        <Setter Property="FontSize"
-                Value="14" />
-        <Setter Property="FontWeight"
-                Value="Bold"></Setter>
+    
+    <Style TargetType="TextBlock" x:Key="ErrorTextBlockStyle">
+        <Setter Property="Foreground" Value="Crimson"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"></Setter>
     </Style>
 
 </ResourceDictionary>

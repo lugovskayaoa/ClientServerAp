@@ -4,9 +4,18 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wtk="clr-namespace:Xceed.Wpf.Toolkit;assembly=Xceed.Wpf.Toolkit"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:command="http://www.galasoft.ch/mvvmlight"
         DataContext="{StaticResource MainViewModel}"
         mc:Ignorable="d"
-        Title="{Binding ClientName}" Height="350" Width="525">
+        Title="{Binding ClientName}" Height="350" Width="700">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Closing">
+            <command:EventToCommand Command="{Binding CloseWindowCommand}"
+                                    PassEventArgsToCommand="False"></command:EventToCommand>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -24,9 +33,12 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Контакты"                                   
+                <DataGridTextColumn Header="Имя"
+                                    Binding="{Binding Path=Name}"
+                                    Width="100" />
+                <!--DataGridTextColumn Header="Контакты"                                   
                                     Binding="{Binding Path=Adress}"
-                                    Width="150" />
+                                    Width="150" /-->
             </DataGrid.Columns>
         </DataGrid>
         
@@ -47,7 +59,7 @@
             <DataGrid Grid.Row="0"
                       Grid.ColumnSpan="2"
                       AutoGenerateColumns="False"
-                      RowHeight="30"
+                      MinRowHeight="30"
                       HeadersVisibility="None"
                       GridLinesVisibility="None"
                       ItemsSource="{Binding SelectedUser.Dialog}"
@@ -55,18 +67,43 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding User}"
                                         Width="Auto" />
-                    <DataGridTextColumn Binding="{Binding Text}"
-                                        Width="*" />
+                    <DataGridTextColumn Binding="{Binding Text}"                                      
+                                        Width="*" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.TextWrapping"
+                                        Value="Wrap" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
                     <DataGridTextColumn Binding="{Binding Time}"
-                                        Width="Auto" />
+                                        Width="100" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.FontSize"
+                                        Value="9" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
             <TextBox Grid.Row="1" 
                      Grid.Column="0"
-                     Text="{Binding Text, Mode=TwoWay}"
+                     Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      TextWrapping="Wrap"
-                     AcceptsReturn="True"
-                     BorderThickness="0"/>
+                     AcceptsReturn="True"  
+                     BorderThickness="0">
+                    <!--i:Interaction.Triggers>
+                        <i:EventTrigger EventName="PreviewKeyUp">
+                        <command:EventToCommand Command="{Binding PreviewKeyDownEventCommand}"
+                                                    PassEventArgsToCommand="True"/>
+                        </i:EventTrigger>
+                    </-->
+                    <TextBox.InputBindings>
+                    <KeyBinding Key="Enter"
+                                Command="{Binding SendMessageCommand}"/>
+                </TextBox.InputBindings>
+            </TextBox>
             <Button Grid.Row="1"
                     Command="{Binding SendMessageCommand}"
                     Grid.Column="1"

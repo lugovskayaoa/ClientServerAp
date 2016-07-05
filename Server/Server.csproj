@@ -99,9 +99,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Enum\ServerEventEnum.cs" />
     <Compile Include="Model\ClientOnServer.cs" />
     <Compile Include="Model\ServerEvent.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
+    <Compile Include="ViewModel\SettingsViewModel.cs" />
     <Compile Include="View\ServerSettingsView.xaml.cs">
       <DependentUpon>ServerSettingsView.xaml</DependentUpon>
     </Compile>

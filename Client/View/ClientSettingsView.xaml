@@ -4,11 +4,7 @@
         Title="Настройки" Height="150" Width="350">
 
     <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="../Resources/Styles.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml"></ResourceDictionary>
     </Window.Resources>
     
     <Grid>
@@ -29,7 +25,7 @@
         <TextBox Grid.Row="0"
                  Grid.Column="1"
                  Text="{Binding ServerIP, Mode=TwoWay}"
-                 Style="{StaticResource ValidationTextBoxStyle}" />
+                 Style="{StaticResource CommonTextBoxStyle}" />
         <TextBlock Text="Порт сервера"
                    Grid.Row="1"
                    Grid.Column="0"
@@ -37,7 +33,7 @@
         <TextBox Grid.Row="1"
                  Grid.Column="1"
                  Text="{Binding ServerPort, Mode=TwoWay}"
-                 Style="{StaticResource ValidationTextBoxStyle}" />
+                 Style="{StaticResource CommonTextBoxStyle}" />
         <TextBlock Text="Имя клиента"
                    Grid.Row="2"
                    Grid.Column="0"
@@ -45,7 +41,7 @@
         <TextBox Grid.Row="2"
                  Grid.Column="1"
                  Text="{Binding ClientName, Mode=TwoWay}"
-                 Style="{StaticResource ValidationTextBoxStyle}" />
+                 Style="{StaticResource CommonTextBoxStyle}" />
         <StackPanel Grid.Row="3" 
                     Grid.ColumnSpan="2" 
                     Grid.Column="0"

@@ -1,9 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Net;
-using System.Net.Sockets;
-using System.Windows;
-using ClientServer.Common.Helpers;
-using Client.Model;
+﻿using System.Windows;
 
 namespace Client
 {
@@ -15,7 +10,7 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
-
+ 
         }
 
     }

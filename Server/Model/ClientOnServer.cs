@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+using Timer = System.Timers.Timer;
 
 namespace Server.Model
 {
@@ -13,9 +10,19 @@ namespace Server.Model
         {
             Name = name;
             TcpClient = client;
+            LastActivityTime = DateTime.Now;
+
+            ConnectionTimer = new Timer();
+            ConnectionTimer.Interval = 6000;
+            ConnectionTimer.Enabled = true;
+
         }
         public string Name { get; set; }
 
         public TcpClient TcpClient { get; set; }
+
+        public DateTime LastActivityTime { get; set; }
+
+        public Timer ConnectionTimer { get; set; }
     }
 }

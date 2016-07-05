@@ -4,32 +4,47 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Server"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:command="http://www.galasoft.ch/mvvmlight"
         DataContext="{StaticResource MainViewModel}"
         mc:Ignorable="d"
-        Title="Сервер" Height="400" Width="700">
+        Title="{Binding ServerName}" Height="400" Width="700">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Closing">
+            <command:EventToCommand Command="{Binding CloseWindowCommand}"
+                                    PassEventArgsToCommand="False"></command:EventToCommand>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>    
+    <Window.Resources>
+        <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml"></ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
-            <RowDefinition Height="4*" />
             <RowDefinition Height="3*" />
+            <RowDefinition Height="4*" />
         </Grid.RowDefinitions>
         <ToolBar>
             <StackPanel Orientation="Horizontal">
-                <Button Command="{Binding StartServerCommand}">
+                <Button Command="{Binding StartServerCommand}"
+                        Style="{StaticResource ImageButton}">
                     <Image Source="Images/play-32.png"
                            Height="20"
                            Width="20">
                     </Image>
                 </Button>
-                <Button Command="{Binding StopServerCommand}">
+                <Button Command="{Binding StopServerCommand}"
+                        Style="{StaticResource ImageButton}">
                     <Image Source="Images/stop-32.png"
                            Height="20"
                            Width="20"></Image>
                 </Button>
-                <Button Command="{Binding SettingsCommand}">
-                    <Image Source="Images/settings-4-32.png"
-                           Height="20"
-                           Width="20"></Image>
+                <Button Command="{Binding SettingsCommand}"
+                        Style="{StaticResource ImageButton}">
+                    <Image Source="Images/settings-4-32.png"/>
+                </Button>
+                <Button Content="Отключить клиента"
+                        Command="{Binding RemoveClientCommand}">
                 </Button>
             </StackPanel>
         </ToolBar>
@@ -50,7 +65,8 @@
         </DataGrid>
         <DataGrid Grid.Row="2"
                   AutoGenerateColumns="False"
-                  ItemsSource="{Binding ClientsOnServer}">
+                  ItemsSource="{Binding ClientsOnServer}"
+                  SelectedItem="{Binding SelectedClientOnServer}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Клиент"
                                     Binding="{Binding Path=TcpClient.Client.RemoteEndPoint}"

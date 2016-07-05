@@ -1,25 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Threading;
+using System.Windows;
+using System.Windows.Input;
 using Client.Model;
 using ClientServer.Common.Helpers;
 using ClientServer.Common.Model;
 using GalaSoft.MvvmLight;
-using GalaSoft.MvvmLight.Command;
+using GalaSoft.MvvmLight.CommandWpf;
 
 namespace Client.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
         private TcpClient _client;
+        private Thread _ctThread;
         private int _serverPort;
         private string _serverIP;
         private string _clientName;
@@ -28,22 +26,28 @@ namespace Client.ViewModel
 
         public MainViewModel()
         {
-            _serverPort = 45880;
+            _serverPort = 45902;
             _serverIP = "127.0.0.1";
 
-            _client = new TcpClient(_serverIP, _serverPort);
+            try
+            {
+                _client = new TcpClient(_serverIP, _serverPort);
 
-            _clientName = _client.Client.LocalEndPoint.ToString();
+                _clientName = _client.Client.LocalEndPoint.ToString();
 
-            //отправка имени
-            var nameStream = _client.GetStream();
+                //отправка имени
+                SendData(_clientName);
+           
+                Contacts = new ObservableCollection<Contact>();            
 
-            var data = Helper.ObjectToByteArray(_clientName);
-
-            nameStream.Write(data, 0, data.Length);
-
-            Thread ctThread = new Thread(ReceiveMessage);
-            ctThread.Start();
+                _ctThread = new Thread(ReceiveMessage);
+                _ctThread.IsBackground = true;
+                _ctThread.Start();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Невозможно соединиться с сервером.");
+            }
 
         }
 
@@ -81,13 +85,13 @@ namespace Client.ViewModel
         }
 
         public string Text
-         {
-             get { return _text; } 
-             set
-             {
-                 Set(() => Text, ref _text, value);
-             }
-         }
+        {
+            get { return _text; } 
+            set
+            {
+                Set(() => Text, ref _text, value);
+            }
+        }
 
         #endregion
 
@@ -95,42 +99,57 @@ namespace Client.ViewModel
 
         public RelayCommand SendMessageCommand
         {
-            get { return new RelayCommand(SendMessage);}
+            get { return new RelayCommand(SendMessage, () => SelectedUser != null);}
         }
+
+        public RelayCommand CloseWindowCommand
+        {
+            get { return new RelayCommand(CloseConnection);}
+        }
+        
         #endregion
 
+
+        /// <summary>
+        /// отправляет текстовое сообщение
+        /// </summary>
         private void SendMessage()
         {
-            SelectedUser.Dialog.Add(new Message(true, Text));            
-
-            var stream = _client.GetStream();
-
+            SelectedUser.Dialog.Add(new Message(true, Text));    
+        
             var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, (IPEndPoint)SelectedUser.Adress, Text); 
 
-            var data = Helper.ObjectToByteArray(message);
-
-            stream.Write(data, 0, data.Length);
+            SendData(message);
 
             Text = "";
         }
 
+        /// <summary>
+        /// Обработка полученных данных 
+        /// </summary>
         private void ReceiveMessage()
         {
-            while (true)
+            while (_ctThread.IsAlive)
             {
                 var respond = GetDataFromStream(_client);
+
+                if (respond == null)
+                    return;
 
                 //получение списка клиентов
                 if (respond is ObservableCollection<NetworkClient>)
                 {
                     var networkClients = (ObservableCollection<NetworkClient>)respond;
 
-                    Contacts = new ObservableCollection<Contact>();
-
-                    foreach (var networkClient in networkClients)
+                    //Contacts = new ObservableCollection<Contact>();
+                    App.Current.Dispatcher.Invoke(delegate
                     {
-                        Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
-                    }                    
+
+                        foreach (var networkClient in networkClients)
+                        {
+                            Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
+                        }
+                    });
                 }
 
                 //получение сообщения
@@ -171,25 +190,60 @@ namespace Client.ViewModel
 
             }
         }
-
-        private void SendData(TcpClient client, object obj)
+        /// <summary>
+        /// отправка данных
+        /// </summary>
+        /// <param name="obj"></param>
+        private void SendData(object obj)
         {
-            var nameStream = client.GetStream();
+            var stream = _client.GetStream();
 
             var data = Helper.ObjectToByteArray(obj);
 
-            nameStream.Write(data, 0, data.Length);            
+            stream.Write(data, 0, data.Length);            
         }
 
+        /// <summary>
+        /// читает данные из потока и приводит к объекту
+        /// </summary>
+        /// <param name="client"></param>
+        /// <returns></returns>
         private object GetDataFromStream(TcpClient client)
         {
             var stream = client.GetStream();
 
-            byte[] bytes = new byte[client.ReceiveBufferSize];
+            if (stream.CanRead)
+            {
+                byte[] bytes = new byte[client.ReceiveBufferSize];
 
-            stream.Read(bytes, 0, client.ReceiveBufferSize);
+                if (stream.Read(bytes, 0, client.ReceiveBufferSize) > 0)
+                    return Helper.ByteArrayToObject(bytes);
 
-            return Helper.ByteArrayToObject(bytes);           
+                return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Отправляет информацию о клиенте на сервер
+        /// </summary>
+        private void SendStateInfo()
+        {
+            var networkClient = new NetworkClient(ClientName, _client.Client.LocalEndPoint, false);
+
+            SendData(networkClient);        
+        }
+
+        public void CloseConnection()
+        {
+            SendStateInfo();
+
+            _ctThread.Abort();
+            _client.GetStream().Close();
+            _client.Close();
+            _client = null;
+
         }
     }
 }

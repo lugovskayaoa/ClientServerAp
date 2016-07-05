@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Server.Enum;
 
 namespace Server.Model
 {
@@ -14,8 +11,17 @@ namespace Server.Model
 
         public string Description { get; set; }
 
-        public ServerEvent(string name, DateTime time, string description = null)
+        public ServerEvent(string name, DateTime time, string description)
         {
+          /*  switch (eventName)
+            {
+                case ServerEventEnum.Start:
+                {
+                    Name = "";
+                    break;
+                }
+            }*/
+            
             Name = name;
             Time = time;
             Description = description;
