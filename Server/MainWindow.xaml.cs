@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Windows;
-using Server.View;
-using Server.ViewModel;
+﻿using System.Windows;
 
 namespace Server
 {

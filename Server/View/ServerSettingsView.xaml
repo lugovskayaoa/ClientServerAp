@@ -1,6 +1,8 @@
 ﻿<Window x:Class="Server.View.ServerSettingsView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
         Title="Настройки" Height="170" Width="350">
     <Window.Resources>
         <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml"></ResourceDictionary>
@@ -22,16 +24,16 @@
                    Style="{StaticResource CommonTextBlockStyle}" />
         <TextBox Grid.Row="0"
                  Grid.Column="1"
-                 Text="{Binding Name, Mode=TwoWay}"
-                 Style="{StaticResource CommonTextBoxStyle}" />
+                 Text="{Binding Name, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
         <TextBlock Text="Порт"
                    Grid.Row="1"
                    Grid.Column="0"
                    Style="{StaticResource CommonTextBlockStyle}" />
         <TextBox Grid.Row="1"
                  Grid.Column="1"
-                 Text="{Binding Port, Mode=TwoWay}"
-                 Style="{StaticResource CommonTextBoxStyle}" />
+                 Text="{Binding Port, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
         <TextBlock Text="Сетевой интерфейс"
                    Grid.Row="2"
                    Grid.Column="0"
@@ -40,7 +42,7 @@
                   Grid.Column="1"
                   ItemsSource="{Binding NetworkInterfaces, Mode=TwoWay}"
                   DisplayMemberPath="Description"
-                  SelectedItem="{Binding SelectedNetworkInterface, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                  SelectedItem="{Binding SelectedNetworkInterface, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
                   IsSynchronizedWithCurrentItem="True"
                   Style="{StaticResource CommonComboBoxStyle}" />
         <StackPanel Grid.Row="3"
@@ -48,6 +50,7 @@
                     Grid.Column="0"
                     Style="{StaticResource BottomStackPanelStyle}">
             <Button Content="Сохранить"
+                    Command="{Binding SaveCommand}"
                     Click="ButtonBase_OnClick"
                     IsDefault="True"
                     Style="{StaticResource DialogButton}" />

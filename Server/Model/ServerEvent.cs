@@ -1,4 +1,5 @@
 ﻿using System;
+using ClientServer.Common.Helpers;
 using Server.Enum;
 
 namespace Server.Model
@@ -11,18 +12,9 @@ namespace Server.Model
 
         public string Description { get; set; }
 
-        public ServerEvent(string name, DateTime time, string description)
+        public ServerEvent(ServerEventEnum eventName, DateTime time, string description = null)
         {
-          /*  switch (eventName)
-            {
-                case ServerEventEnum.Start:
-                {
-                    Name = "";
-                    break;
-                }
-            }*/
-            
-            Name = name;
+            Name = eventName.GetDescription();
             Time = time;
             Description = description;
         }

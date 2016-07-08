@@ -1,7 +1,9 @@
 ﻿<Window x:Class="Client.View.ClientSettingsView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Настройки" Height="150" Width="350">
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Title="Настройки" Height="170" Width="350">
 
     <Window.Resources>
         <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml"></ResourceDictionary>
@@ -24,24 +26,24 @@
                    Style="{StaticResource CommonTextBlockStyle}" />
         <TextBox Grid.Row="0"
                  Grid.Column="1"
-                 Text="{Binding ServerIP, Mode=TwoWay}"
-                 Style="{StaticResource CommonTextBoxStyle}" />
+                 Text="{Binding IPAddress, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
         <TextBlock Text="Порт сервера"
                    Grid.Row="1"
                    Grid.Column="0"
                    Style="{StaticResource CommonTextBlockStyle}" />
         <TextBox Grid.Row="1"
                  Grid.Column="1"
-                 Text="{Binding ServerPort, Mode=TwoWay}"
-                 Style="{StaticResource CommonTextBoxStyle}" />
+                 Text="{Binding Port, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
         <TextBlock Text="Имя клиента"
                    Grid.Row="2"
                    Grid.Column="0"
-                   Style="{StaticResource CommonTextBlockStyle}" />
+                   Style="{StaticResource CommonTextBlockStyle}" />       
         <TextBox Grid.Row="2"
-                 Grid.Column="1"
-                 Text="{Binding ClientName, Mode=TwoWay}"
-                 Style="{StaticResource CommonTextBoxStyle}" />
+                    Grid.Column="1"
+                    Text="{Binding Name, Mode=TwoWay, NotifyOnValidationError=True, ValidatesOnDataErrors=True,  ValidatesOnExceptions=True, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource ValidationTextBoxStyle}" />
         <StackPanel Grid.Row="3" 
                     Grid.ColumnSpan="2" 
                     Grid.Column="0"
@@ -49,7 +51,8 @@
             <Button Content="Сохранить"
                     Command="{Binding SaveCommand}"
                     IsDefault="True"
-                    Style="{StaticResource DialogButton}" />
+                    Style="{StaticResource DialogButton}"
+                    Click="Button_Click" />
             <Button Content="Отмена"
                     IsCancel="True"
                     Style="{StaticResource DialogButton}" />

@@ -6,19 +6,53 @@
         xmlns:wtk="clr-namespace:Xceed.Wpf.Toolkit;assembly=Xceed.Wpf.Toolkit"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:command="http://www.galasoft.ch/mvvmlight"
+        xmlns:converters="clr-namespace:Client.Converters"
         DataContext="{StaticResource MainViewModel}"
         mc:Ignorable="d"
-        Title="{Binding ClientName}" Height="350" Width="700">
+        WindowStartupLocation="CenterScreen"
+        Title="{Binding Title}" 
+        Height="350" 
+        Width="700"
+        MinHeight="350"
+        MinWidth="700">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Closing">
             <command:EventToCommand Command="{Binding CloseWindowCommand}"
                                     PassEventArgsToCommand="False"></command:EventToCommand>
         </i:EventTrigger>
+        <i:EventTrigger EventName="Loaded">
+            <command:EventToCommand Command="{Binding SettingsCommand}"
+                                    PassEventArgsToCommand="False"></command:EventToCommand>
+        </i:EventTrigger>
     </i:Interaction.Triggers>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:BoolToColorBrushConverter x:Key="BoolToColorBrushConverter" />
+            <converters:BoolToImageConverter x:Key="BoolToImageConverter" />
+            <Style TargetType="{x:Type DataGridCell}" 
+                   x:Key="CellColorStyle">
+                <Setter Property="Foreground"
+                        Value="{Binding IsIncoming, Converter = {StaticResource BoolToColorBrushConverter} }"/>
+            </Style>
+            <Style TargetType="{x:Type DataGridCell}"
+                   x:Key="CellContactStyle">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding HaveNewMessages}"
+                                 Value="True">
+                        <Setter Property="FontWeight"
+                                Value="Bold"></Setter>
+                    </DataTrigger>
+                </Style.Triggers>
 
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <DataGrid Grid.Column="0"
@@ -27,18 +61,21 @@
                   SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
                   GridLinesVisibility="None"
                   AutoGenerateColumns="False"
-                  ItemsSource="{Binding Contacts}">
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  ItemsSource="{Binding Contacts}"
+                  CellStyle="{StaticResource CellContactStyle}">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Имя"
+                <DataGridTextColumn Header="Контакты"
                                     Binding="{Binding Path=Name}"
-                                    Width="100" />
-                <!--DataGridTextColumn Header="Контакты"                                   
-                                    Binding="{Binding Path=Adress}"
-                                    Width="150" /-->
+                                    MinWidth="100"
+                                    MaxWidth="300"
+                                    Width="100">
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
         
@@ -51,22 +88,23 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
-            <!--wtk:RichTextBox Grid.Row="0"
-                             Grid.ColumnSpan="2"
-                             Width="Auto"
-                             Text="{Binding Contacts.Dialog}" /-->
             <DataGrid Grid.Row="0"
                       Grid.ColumnSpan="2"
                       AutoGenerateColumns="False"
                       MinRowHeight="30"
                       HeadersVisibility="None"
                       GridLinesVisibility="None"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      CanUserResizeColumns="False"
+                      CanUserResizeRows="False"
                       ItemsSource="{Binding SelectedUser.Dialog}"
                       Background="White" >
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding User}"
-                                        Width="Auto" />
+                                        Width="100"                                        
+                                        CellStyle="{StaticResource CellColorStyle}">
+                    </DataGridTextColumn>
                     <DataGridTextColumn Binding="{Binding Text}"                                      
                                         Width="*" >
                         <DataGridTextColumn.ElementStyle>
@@ -76,6 +114,14 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
+                    <DataGridTemplateColumn>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding IsDelivered, Converter={StaticResource BoolToImageConverter}}"
+                                       Style="{StaticResource MessageStateImageStyle}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Binding="{Binding Time}"
                                         Width="100" >
                         <DataGridTextColumn.ElementStyle>
@@ -93,12 +139,6 @@
                      TextWrapping="Wrap"
                      AcceptsReturn="True"  
                      BorderThickness="0">
-                    <!--i:Interaction.Triggers>
-                        <i:EventTrigger EventName="PreviewKeyUp">
-                        <command:EventToCommand Command="{Binding PreviewKeyDownEventCommand}"
-                                                    PassEventArgsToCommand="True"/>
-                        </i:EventTrigger>
-                    </-->
                     <TextBox.InputBindings>
                     <KeyBinding Key="Enter"
                                 Command="{Binding SendMessageCommand}"/>

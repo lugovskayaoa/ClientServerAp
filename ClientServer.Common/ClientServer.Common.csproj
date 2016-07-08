@@ -43,9 +43,17 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enums\NetworkCommandTypes.cs" />
+    <Compile Include="Enums\NetworkObjectTypes.cs" />
     <Compile Include="Helpers\Helper.cs" />
-    <Compile Include="Model\NetworkClient.cs" />
-    <Compile Include="Model\NetworkMessage.cs" />
+    <Compile Include="Helpers\StaticExtensions.cs" />
+    <Compile Include="Model\Interfaces\INetworkData.cs" />
+    <Compile Include="Model\Implementations\Base\BaseNetworkObject.cs" />
+    <Compile Include="Model\Implementations\NetworkClient.cs" />
+    <Compile Include="Model\Implementations\NetworkClientsCollection.cs" />
+    <Compile Include="Model\Implementations\NetworkCommand.cs" />
+    <Compile Include="Model\Implementations\NetworkMessage.cs" />
+    <Compile Include="Model\Implementations\NetworkMessageState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +62,7 @@
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

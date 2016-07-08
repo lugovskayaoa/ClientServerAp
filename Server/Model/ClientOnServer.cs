@@ -12,10 +12,7 @@ namespace Server.Model
             TcpClient = client;
             LastActivityTime = DateTime.Now;
 
-            ConnectionTimer = new Timer();
-            ConnectionTimer.Interval = 6000;
-            ConnectionTimer.Enabled = true;
-
+            ConnectionTimer = new Timer {Enabled = true};
         }
         public string Name { get; set; }
 

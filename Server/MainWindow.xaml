@@ -7,13 +7,18 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:command="http://www.galasoft.ch/mvvmlight"
         DataContext="{StaticResource MainViewModel}"
+        WindowState="Maximized"
         mc:Ignorable="d"
-        Title="{Binding ServerName}" Height="400" Width="700">
+        Title="{Binding ServerName}" Height="500" Width="800">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Closing">
             <command:EventToCommand Command="{Binding CloseWindowCommand}"
                                     PassEventArgsToCommand="False"></command:EventToCommand>
         </i:EventTrigger>
+        <i:EventTrigger EventName="Loaded">
+            <command:EventToCommand Command="{Binding SettingsCommand}"
+                                    PassEventArgsToCommand="False"></command:EventToCommand>
+        </i:EventTrigger>        
     </i:Interaction.Triggers>    
     <Window.Resources>
         <ResourceDictionary Source="pack://application:,,,/ClientServer.Common;component/Resources/Styles.xaml"></ResourceDictionary>
@@ -22,34 +27,42 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="3*" />
+            <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="4*" />
         </Grid.RowDefinitions>
-        <ToolBar>
+        <ToolBar Grid.Row="0">
             <StackPanel Orientation="Horizontal">
                 <Button Command="{Binding StartServerCommand}"
-                        Style="{StaticResource ImageButton}">
+                        Style="{StaticResource ImageButton}"
+                        ToolTip="Старт">
                     <Image Source="Images/play-32.png"
                            Height="20"
                            Width="20">
                     </Image>
                 </Button>
                 <Button Command="{Binding StopServerCommand}"
-                        Style="{StaticResource ImageButton}">
+                        Style="{StaticResource ImageButton}"
+                        ToolTip="Стоп">
                     <Image Source="Images/stop-32.png"
                            Height="20"
                            Width="20"></Image>
                 </Button>
                 <Button Command="{Binding SettingsCommand}"
-                        Style="{StaticResource ImageButton}">
+                        Style="{StaticResource ImageButton}"
+                        ToolTip="Настройки">
                     <Image Source="Images/settings-4-32.png"/>
                 </Button>
-                <Button Content="Отключить клиента"
-                        Command="{Binding RemoveClientCommand}">
+                <Button Command="{Binding OpenHistoryCommand}"
+                        Style="{StaticResource ImageButton}"
+                        ToolTip="История сообщений">
+                    <Image Source="Images/report.png" />
                 </Button>
             </StackPanel>
         </ToolBar>
         <DataGrid Grid.Row="1"
                   AutoGenerateColumns="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
                   ItemsSource="{Binding ServerEvents}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Событие"
@@ -63,10 +76,20 @@
                                     Width="*" />
             </DataGrid.Columns>
         </DataGrid>
-        <DataGrid Grid.Row="2"
+        <ToolBar Grid.Row="2">
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding DisconnectClientCommand}"
+                        Content="Отключить клиента"
+                        Style="{StaticResource CommonButton}">
+                </Button>                
+            </StackPanel>
+        </ToolBar>
+            <DataGrid Grid.Row="3"
                   AutoGenerateColumns="False"
-                  ItemsSource="{Binding ClientsOnServer}"
-                  SelectedItem="{Binding SelectedClientOnServer}">
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  SelectedItem="{Binding SelectedClientOnServer}"
+                  ItemsSource="{Binding ClientsOnServer}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Клиент"
                                     Binding="{Binding Path=TcpClient.Client.RemoteEndPoint}"
@@ -74,8 +97,8 @@
                 <DataGridTextColumn Header="Имя"
                                     Binding="{Binding Path=Name}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="Время подключения"
-                                    Binding="{Binding Path=Time}"
+                <DataGridTextColumn Header="Последняя активность"
+                                    Binding="{Binding Path=LastActivityTime}"
                                     Width="*" />
             </DataGrid.Columns>
         </DataGrid>

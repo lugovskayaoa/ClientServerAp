@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
-using System.Windows.Input;
+using System.Windows;
+using ClientServer.Common.Enums;
 using ClientServer.Common.Helpers;
-using ClientServer.Common.Model;
+using ClientServer.Common.Model.Implementations;
+using ClientServer.Common.Model.Interfaces;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.CommandWpf;
+using Server.Enum;
 using Server.Model;
 using Server.View;
 
@@ -18,36 +22,36 @@ namespace Server.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
+        #region Private fields
+
         private TcpListener _tcpListener;
         private IPEndPoint _ipEndPoint;
         private int _maxThreadsCount;
         private int _port;
-        private IPAddress _ipAddress;
         private Thread _thread;
         private TimeSpan _timeSpan;
         private bool _isServerRun;
         private NetworkInterface _networkInterface;
         private ClientOnServer _selectedClientOnServer;
         private string _serverName;
+        private readonly string _logFileName;
+
+        #endregion
+
+        #region Constructors
 
         public MainViewModel()
         {
-            _ipAddress = IPAddress.Parse("127.0.0.1"); 
-            _port = 45902;
+            _logFileName = Directory.GetCurrentDirectory() + @"\Log.txt";
 
-           // ShowSettings();
+            _timeSpan = new TimeSpan(0, 2, 0); //время, через которое будет проходить проверка активности клиента 
 
-            _timeSpan = new TimeSpan(0, 0, 2); //время, через которое будет проходить проверка активности клиента 
-            
             ServerEvents = new ObservableCollection<ServerEvent>();
 
             ClientsOnServer = new ObservableCollection<ClientOnServer>();
-
-           // _tcpListener = new TcpListener(_ipEndPoint);
-
-            _tcpListener = new TcpListener(_ipAddress, _port);
-            StartServer();
         }
+
+        #endregion
 
         #region Properties
 
@@ -55,8 +59,7 @@ namespace Server.ViewModel
 
         public ObservableCollection<ClientOnServer> ClientsOnServer { get; set; }
 
-        public ClientOnServer SelectedClientOnServer
-        {
+        public ClientOnServer SelectedClientOnServer {
             get { return _selectedClientOnServer; }
             set { Set(() => SelectedClientOnServer, ref _selectedClientOnServer, value); }
         }
@@ -73,7 +76,7 @@ namespace Server.ViewModel
 
         public RelayCommand StartServerCommand
         {
-            get { return new RelayCommand(StartServer, () => !_isServerRun); }
+            get { return new RelayCommand(StartServer, () => !_isServerRun && _tcpListener != null); }
         }
 
         public RelayCommand StopServerCommand
@@ -83,12 +86,7 @@ namespace Server.ViewModel
 
         public RelayCommand SettingsCommand
         {
-            get { return new RelayCommand(ShowSettings);}
-        }
-
-        public RelayCommand RemoveClientCommand
-        {
-            get { return new RelayCommand(RemoveClientCommandExecuted);}
+            get { return new RelayCommand(ShowSettings); }
         }
 
         public RelayCommand CloseWindowCommand
@@ -96,23 +94,62 @@ namespace Server.ViewModel
             get { return new RelayCommand(CloseConnection); }
         }
 
+        public RelayCommand DisconnectClientCommand
+        {
+            get { return new RelayCommand(DisconnectClient, () => SelectedClientOnServer != null); }
+        }
+
+        public RelayCommand OpenHistoryCommand
+        {
+            get { return new RelayCommand(OpenHistory);}
+        }
+
         #endregion
+
+        #region Methods
+
+        private void OpenHistory()
+        {
+            try
+            {
+                Process.Start(_logFileName);
+            }
+            catch (Exception e)
+            {
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
+            }
+        }
 
         private void ShowSettings()
         {
-            var settingsDialogVm = new SettingsViewModel(_serverName, _port, _networkInterface);
-
-            var settingsDialog = new ServerSettingsView{DataContext = settingsDialogVm};
-
-            if (settingsDialog.ShowDialog() == true)
+            try
             {
-                ServerName = settingsDialogVm.Name; 
-                _port = settingsDialogVm.Port;
-                _networkInterface = settingsDialogVm.SelectedNetworkInterface;
+                var settingsDialogVm = new SettingsViewModel(_serverName, _port, _networkInterface);
 
-                var ipAddresses = _networkInterface.GetIPProperties().UnicastAddresses;
-                _ipEndPoint = new IPEndPoint(ipAddresses[0].Address, _port);
+                var settingsDialog = new ServerSettingsView {DataContext = settingsDialogVm};
+
+                settingsDialog.Owner = Application.Current.MainWindow;
+
+                if (settingsDialog.ShowDialog() == true)
+                {
+                    ServerName = settingsDialogVm.Name;
+                    _port = settingsDialogVm.Port;
+                    _networkInterface = settingsDialogVm.SelectedNetworkInterface;
+
+                    var ipAddress = _networkInterface.GetIPProperties().UnicastAddresses.First(x => x.Address.AddressFamily == AddressFamily.InterNetwork); //получает IPv4
+                    _ipEndPoint = new IPEndPoint(ipAddress.Address, _port); 
+
+                    StopServer();
+                    _tcpListener = new TcpListener(_ipEndPoint);
+                    // _tcpListener = new TcpListener(_ipAddress, _port);
+                    StartServer();
+                }
             }
+            catch (Exception e)
+            {
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
+            }
+
         }
 
         private void StartServer()
@@ -121,8 +158,9 @@ namespace Server.ViewModel
             {
                 _tcpListener.Start();
 
-                _isServerRun = true;                    
-                _maxThreadsCount = Environment.ProcessorCount * 4;
+                _isServerRun = true;
+
+                _maxThreadsCount = Environment.ProcessorCount*4;
 
                 ThreadPool.SetMaxThreads(_maxThreadsCount, _maxThreadsCount);
                 ThreadPool.SetMinThreads(2, 2);
@@ -130,162 +168,178 @@ namespace Server.ViewModel
                 _thread = new Thread(AcceptConnections);
                 _thread.Start();
 
-                ServerEvents.Add(new ServerEvent("Старт", DateTime.Now, "Выполнено"));
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Start, DateTime.Now));
             }
             catch (Exception e)
             {
-                ServerEvents.Add(new ServerEvent("Старт", DateTime.Now, "Не выполнено"));
-                HandleError(e.ToString());
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
             }
 
         }
 
-        private void AcceptConnections(Object stateInfo)
+        private void AcceptConnections()
         {
-            while (true)
+            while (_isServerRun)
             {
+                if (!_tcpListener.Pending())
+                {
+                    Thread.Sleep(500);
+                    continue;
+                }
+
                 ThreadPool.QueueUserWorkItem(ClientThread, _tcpListener.AcceptTcpClient());
             }
         }
 
         private void ClientThread(Object stateInfo)
         {
-            var client = (TcpClient)stateInfo;
-
-            //получение имени клиента
-           /* var nameStream = client.GetStream();
-
-            byte[] bytes = new byte[client.ReceiveBufferSize];
-
-            nameStream.Read(bytes, 0, client.ReceiveBufferSize);
-            var newClientName = (String)Helper.ByteArrayToObject(bytes);*/
-
-            var newClientName = (String)GetDataFromStream(client);          
-
-            var clientOnServer = new ClientOnServer(newClientName, client);
-
-            //clientOnServer.ConnectionTimer.Elapsed += delegate { DisconnectInactiveClient(clientOnServer); };
-
-            App.Current.Dispatcher.Invoke(delegate
-            {               
-                ClientsOnServer.Add(new ClientOnServer(newClientName, client));
-            });    
-
-            //передаем новому клиенту список клиентов сети
-            var networkClients = new ObservableCollection<NetworkClient>();
-
-            foreach (var c in ClientsOnServer)
+            try
             {
-                if (c.TcpClient != client)
+                var client = (TcpClient) stateInfo;
+
+                //получение имени клиента
+                var newClientName = (string) client.GetDataFromStream();
+
+                var clientOnServer = new ClientOnServer(newClientName, client)
+                {
+                    ConnectionTimer = {Interval = _timeSpan.TotalMilliseconds}  //интервал через который будет производиться проверка активности
+                };
+
+                clientOnServer.ConnectionTimer.Elapsed += delegate { DisconnectInactiveClient(clientOnServer); };
+                
+                Application.Current.Dispatcher.Invoke(delegate
+                {
+                    ClientsOnServer.Add(new ClientOnServer(newClientName, client));
+                });
+
+                //передаем новому клиенту список клиентов сети
+                var networkClients = new ObservableCollection<NetworkClient>();
+
+                foreach (var c in ClientsOnServer.Where(c => c.TcpClient != client))
+                {
                     networkClients.Add(new NetworkClient(c.Name, c.TcpClient.Client.RemoteEndPoint));
+                }
+
+                client.PutDataToStream(new NetworkClientsCollection(networkClients));
+
+                //передаем остальным клиентам сети данные нового клиента
+                foreach (var c in ClientsOnServer)
+                {
+                    if (c.TcpClient.Client.RemoteEndPoint == client.Client.RemoteEndPoint)
+                        continue;
+
+                    var newClient = new NetworkClient(newClientName, client.Client.RemoteEndPoint);
+
+                    c.TcpClient.PutDataToStream(newClient);
+                }
+
+                ReceiveMessage(client);
             }
-    
-            var stream = client.GetStream();
-
-            var data = Helper.ObjectToByteArray(networkClients);
-
-            stream.Write(data, 0, data.Length);
-
-            //передаем остальным клиентам сети данные нового клиента
-            foreach (var c in ClientsOnServer)
+            catch (Exception e)
             {
-                if (c.TcpClient.Client.RemoteEndPoint == client.Client.RemoteEndPoint)
-                    continue;
-
-                NetworkStream tcpClientStream = c.TcpClient.GetStream();
-
-                var tcpClientData = Helper.ObjectToByteArray(new NetworkClient(newClientName, client.Client.RemoteEndPoint));
-
-                tcpClientStream.Write(tcpClientData, 0, tcpClientData.Length);
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
             }
-
-            RouteMessage(client);
 
         }
 
-        private void RouteMessage(TcpClient client)
+        /// <summary>
+        /// получение данных от клиента
+        /// </summary>
+        /// <param name="client"></param>
+        private void ReceiveMessage(TcpClient client)
         {
-            while (client.Connected)
+            while (_isServerRun && client.Connected)
             {
-               /* NetworkStream stream = client.GetStream();
+                var response = client.GetDataFromStream();
 
-                byte[] bytes = new byte[client.ReceiveBufferSize];*/
-
-                var response = GetDataFromStream(client);
-
-               // if (stream.Read(bytes, 0, client.ReceiveBufferSize) > 0)
-                if (response != null)
+                if (response == null)
                 {
-                    //var response = Helper.ByteArrayToObject(bytes);
+                    return;
+                }
 
-                    //прием тектового сообщения
-                    if (response is NetworkMessage)
-                    {
-                        var message = (NetworkMessage) response;
+                var networkObject = (INetworkData) response;
 
-                        var clientOnServer =
-                            ClientsOnServer.FirstOrDefault(
-                                x => Equals(x.TcpClient.Client.RemoteEndPoint, message.FromPoint));
+                ProcessMessage(networkObject, client);
 
-                        if (clientOnServer != null)
-                        {
-                            clientOnServer.LastActivityTime = DateTime.Now;
-
-                            SaveMessageToFile(message, clientOnServer.Name);
-                        }
-
-                        SendMessage(message);                        
-                    }
-                    //прием информации о изменении статуса клиента
-                    if (response is NetworkClient)
-                    {
-                        var networkClient = (NetworkClient) response;
-
-                        if (!networkClient.IsOnline)
-                        {
-                            RemoveClient(networkClient);
-                        }
-                    }
-
-                }            
             }
         }
 
         /// <summary>
-        /// читает данные из потока и приводит к объекту
+        /// Обработка полученных данных
         /// </summary>
+        /// <param name="networkObject"></param>
         /// <param name="client"></param>
-        /// <returns></returns>
-        private object GetDataFromStream(TcpClient client)
+        private void ProcessMessage(INetworkData networkObject, TcpClient client)
         {
-            var stream = client.GetStream();
-
-            if (stream.CanRead)
+            switch (networkObject.NetworkObjectType)
             {
-                byte[] bytes = new byte[client.ReceiveBufferSize];
+                case NetworkObjectTypes.Message:
+                {
+                    var message = (NetworkMessage) networkObject;
 
-                if (stream.Read(bytes, 0, client.ReceiveBufferSize) > 0)
-                    return Helper.ByteArrayToObject(bytes);
+                    ProcessTextMessage(message, client);
+                    break;
+                }
+                case NetworkObjectTypes.ClientInfo:
+                {
+                    var networkClient = (NetworkClient) networkObject;
 
-                return null;
+                    ProcessClient(networkClient);
+
+                    break;
+                }
             }
-
-            return null;
         }
 
-        private void SendMessage(NetworkMessage message)
+        private void ProcessTextMessage(NetworkMessage message, TcpClient client)
         {
-            var netClient = ClientsOnServer.FirstOrDefault(x => Equals(x.TcpClient.Client.RemoteEndPoint, message.ToPoint));
+            var clientOnServer =
+                ClientsOnServer.FirstOrDefault(
+                    x => Equals(x.TcpClient.Client.RemoteEndPoint, message.FromPoint));
 
-            if (netClient != null)
+            if (clientOnServer != null)
             {
-                NetworkStream stream = netClient.TcpClient.GetStream();
+                clientOnServer.LastActivityTime = DateTime.Now;
 
-                var data = Helper.ObjectToByteArray(message);
-
-                stream.Write(data, 0, data.Length);
+                SaveMessageToLogFile(message, clientOnServer.Name);
             }
 
+            var isDelivered = SendMessage(message);
+
+            //отправка информации о состоянии сообщения
+            client.PutDataToStream(new NetworkMessageState(isDelivered));
+        }
+
+        private void ProcessClient(NetworkClient networkClient)
+        {
+            if (networkClient.IsOnline) 
+                return;
+
+            var clientOnServer =
+                ClientsOnServer.FirstOrDefault(
+                    x => x.TcpClient.Client.RemoteEndPoint.Equals(networkClient.Adress));
+            RemoveClient(clientOnServer);
+        }
+
+        private bool SendMessage(NetworkMessage message)
+        {
+            try
+            {
+                var netClient =
+                    ClientsOnServer.FirstOrDefault(x => Equals(x.TcpClient.Client.RemoteEndPoint, message.ToPoint));
+
+                if (netClient != null)
+                {
+                    netClient.TcpClient.PutDataToStream(message);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private void StopServer()
@@ -294,80 +348,80 @@ namespace Server.ViewModel
             {
                 if (_tcpListener != null)
                 {
-                    App.Current.Dispatcher.Invoke(delegate
+                    Application.Current.Dispatcher.Invoke(delegate
                     {
+                        foreach (var client in ClientsOnServer)
+                        {
+                            client.TcpClient.PutDataToStream(new NetworkCommand(NetworkCommandTypes.ServerStop));
+                        }
                         _tcpListener.Server.Close();
                         _tcpListener.Stop();
-                        _thread.Abort();
                         _isServerRun = false;
-                        ServerEvents.Add(new ServerEvent("Стоп", DateTime.Now, "Выполнено"));                    
+
+                        _thread.Abort();
+
+                        ServerEvents.Add(new ServerEvent(ServerEventEnum.Stop, DateTime.Now));
                     });
                 }
             }
             catch (Exception e)
             {
-                ServerEvents.Add(new ServerEvent("Стоп", DateTime.Now, "Не выполнено"));
-                HandleError(e.ToString());
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
             }
 
         }
 
-        private void HandleError(string error)
-        {
-            ServerEvents.Add(new ServerEvent("Ошибка", DateTime.Now, error));
-        }
-
-        private void SaveMessageToFile(NetworkMessage message, string userName)
+        private void SaveMessageToLogFile(NetworkMessage message, string userName)
         {
             var logMessage = DateTime.Now + " \"" + userName + "\" " + " \"" + message.Text + "\" ";
 
-            var path = Directory.GetCurrentDirectory();
-
             using (var file =
-            new StreamWriter(path + @"\Log.txt", true))
+                new StreamWriter(_logFileName, true))
             {
                 file.WriteLine(logMessage);
             }
         }
 
+        /// <summary>
+        /// отключает неактивного клиента 
+        /// </summary>
+        /// <param name="client"></param>
         private void DisconnectInactiveClient(ClientOnServer client)
         {
-
-                if (!(client.LastActivityTime.Add(_timeSpan).CompareTo(DateTime.Now) > 0))
-                {                   
-                    var networkClient = new NetworkClient(client.Name, client.TcpClient.Client.RemoteEndPoint);
-                    RemoveClient(networkClient);
-
-                   
-                    //client.TcpClient.Close();
-                   
-                    //ClientsOnServer.Remove(client);
-                }   
+            if (!(client.LastActivityTime.Add(_timeSpan).CompareTo(DateTime.Now) > 0))
+            {
+                client.ConnectionTimer.Enabled = false;
+                client.TcpClient.PutDataToStream(new NetworkCommand(NetworkCommandTypes.Disconnect));
+            }
         }
 
-        private void RemoveClientCommandExecuted()
+        private void DisconnectClient()
         {
-           // RemoveClient(SelectedClientOnServer);
+            SelectedClientOnServer.TcpClient.PutDataToStream(new NetworkCommand(NetworkCommandTypes.Disconnect));
         }
 
-        private void RemoveClient(NetworkClient networkClient)
+        private void RemoveClient(ClientOnServer clientOnServer)
         {
-            var clientOnServer = ClientsOnServer.FirstOrDefault(x => x.TcpClient.Client.RemoteEndPoint.Equals(networkClient.Adress));
-
-            App.Current.Dispatcher.Invoke(delegate
+            try
             {
-                clientOnServer.TcpClient.Close();
-                ClientsOnServer.Remove(clientOnServer);
-            });
+                var networkClient = new NetworkClient(clientOnServer.Name,
+                    clientOnServer.TcpClient.Client.RemoteEndPoint, false);
 
-            foreach (var c in ClientsOnServer)
+                Application.Current.Dispatcher.Invoke(delegate
+                {
+                    ClientsOnServer.Remove(clientOnServer);
+                });
+
+                foreach (var c in ClientsOnServer)
+                {
+                    c.TcpClient.PutDataToStream(networkClient);
+                }
+            }
+            catch (Exception e)
             {
-                var tcpClientStream = c.TcpClient.GetStream();
+                ServerEvents.Add(new ServerEvent(ServerEventEnum.Error, DateTime.Now, e.ToString()));
+            }
 
-                var tcpClientData = Helper.ObjectToByteArray(networkClient);
-
-                tcpClientStream.Write(tcpClientData, 0, tcpClientData.Length);
-            }            
         }
 
         private void CloseConnection()
@@ -375,5 +429,7 @@ namespace Server.ViewModel
             StopServer();
             _tcpListener = null;
         }
+
+        #endregion
     }
 }

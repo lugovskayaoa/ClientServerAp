@@ -5,10 +5,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Windows;
-using System.Windows.Input;
 using Client.Model;
+using Client.View;
+using ClientServer.Common.Enums;
 using ClientServer.Common.Helpers;
-using ClientServer.Common.Model;
+using ClientServer.Common.Model.Implementations;
+using ClientServer.Common.Model.Interfaces;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.CommandWpf;
 
@@ -16,54 +18,32 @@ namespace Client.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
+        #region Private fields
+
         private TcpClient _client;
-        private Thread _ctThread;
+        private Thread _msThread;
         private int _serverPort;
-        private string _serverIP;
+        private string _serverIp;
         private string _clientName;
         private Contact _selectedUser;
         private string _text;
+        private string _title;
+
+        #endregion
+
+        #region Constructors
 
         public MainViewModel()
         {
-            _serverPort = 45902;
-            _serverIP = "127.0.0.1";
+            //_serverPort = 45905;
+            // _serverIP = "127.0.0.1";
 
-            try
-            {
-                _client = new TcpClient(_serverIP, _serverPort);
-
-                _clientName = _client.Client.LocalEndPoint.ToString();
-
-                //отправка имени
-                SendData(_clientName);
-           
-                Contacts = new ObservableCollection<Contact>();            
-
-                _ctThread = new Thread(ReceiveMessage);
-                _ctThread.IsBackground = true;
-                _ctThread.Start();
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Невозможно соединиться с сервером.");
-            }
-
+            Contacts = new ObservableCollection<Contact>();
         }
+
+        #endregion
 
         #region Properties
-
-        public string ServerIP
-        {
-            get { return _serverIP; }
-            set { Set(() => ServerIP, ref _serverIP, value); }
-        }
-
-        public int ServerPort
-        {
-            get { return _serverPort; }
-            set { Set(() => ServerPort, ref _serverPort, value); }
-        }
 
         public string ClientName
         {
@@ -71,9 +51,13 @@ namespace Client.ViewModel
             set { Set(() => ClientName, ref _clientName, value); }
         }
 
-        public ObservableCollection<Contact> Contacts { get; set; }
+        public string Title
+        {
+            get { return _title; }
+            set { Set(() => Title, ref _title, value); }
+        }
 
-        public NetworkClient Client { get; set; }
+        public ObservableCollection<Contact> Contacts { get; set; }
 
         public Contact SelectedUser
         {
@@ -81,16 +65,16 @@ namespace Client.ViewModel
             set
             {
                 Set(() => SelectedUser, ref _selectedUser, value);
+
+                if (SelectedUser != null)
+                    SelectedUser.HaveNewMessages = false;
             }
         }
 
         public string Text
         {
-            get { return _text; } 
-            set
-            {
-                Set(() => Text, ref _text, value);
-            }
+            get { return _text; }
+            set { Set(() => Text, ref _text, value); }
         }
 
         #endregion
@@ -99,130 +83,210 @@ namespace Client.ViewModel
 
         public RelayCommand SendMessageCommand
         {
-            get { return new RelayCommand(SendMessage, () => SelectedUser != null);}
+            get { return new RelayCommand(SendMessage, () => SelectedUser != null); }
         }
 
         public RelayCommand CloseWindowCommand
         {
             get { return new RelayCommand(CloseConnection);}
         }
-        
+
+        public RelayCommand SettingsCommand
+        {
+            get { return new RelayCommand(ShowSettings); }
+        }
+
         #endregion
 
+        #region Methods
+
+        private void ShowSettings()
+        {
+            var settingsDialogVm = new ClientSettingsViewModel();
+
+            var settingsDialog = new ClientSettingsView {DataContext = settingsDialogVm};
+
+            settingsDialog.Owner = Application.Current.MainWindow;
+
+            if (settingsDialog.ShowDialog() == true)
+            {
+                _serverPort = settingsDialogVm.Port;
+                _serverIp = settingsDialogVm.IPAddress;
+
+                _clientName = settingsDialogVm.Name;
+
+                ConnectToServer();
+            }
+        }
+
+        private void ConnectToServer()
+        {
+            try
+            {
+                _client = new TcpClient(_serverIp, _serverPort);
+
+                //заголовок окна
+                SetTitle();
+
+                //отправка имени
+                _client.PutDataToStream(_clientName);
+
+                _msThread = new Thread(ReceiveMessage);
+                _msThread.IsBackground = true;
+                _msThread.Start();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Невозможно соединиться с сервером.");
+            }
+        }
 
         /// <summary>
         /// отправляет текстовое сообщение
         /// </summary>
         private void SendMessage()
         {
-            SelectedUser.Dialog.Add(new Message(true, Text));    
-        
-            var message = new NetworkMessage((IPEndPoint)_client.Client.LocalEndPoint, (IPEndPoint)SelectedUser.Adress, Text); 
+            try
+            {
+                var message = new NetworkMessage((IPEndPoint) _client.Client.LocalEndPoint,
+                    (IPEndPoint) SelectedUser.Adress, Text);
 
-            SendData(message);
-
-            Text = "";
+                _client.PutDataToStream(message);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
         }
 
         /// <summary>
-        /// Обработка полученных данных 
+        /// Получение данных с сервера
         /// </summary>
         private void ReceiveMessage()
         {
-            while (_ctThread.IsAlive)
+            while (_msThread.IsAlive && _client.Connected)
             {
-                var respond = GetDataFromStream(_client);
+                var response = _client.GetDataFromStream();
 
-                if (respond == null)
+                if (response == null)
                     return;
 
-                //получение списка клиентов
-                if (respond is ObservableCollection<NetworkClient>)
-                {
-                    var networkClients = (ObservableCollection<NetworkClient>)respond;
+                var networkObject = (INetworkData) response;
 
-                    //Contacts = new ObservableCollection<Contact>();
-                    App.Current.Dispatcher.Invoke(delegate
-                    {
-
-                        foreach (var networkClient in networkClients)
-                        {
-                            Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
-                        }
-                    });
-                }
-
-                //получение сообщения
-                if (respond is NetworkMessage)
-                {
-                    var message = (NetworkMessage) respond;
-
-                    App.Current.Dispatcher.Invoke(delegate 
-                    {
-                        var receiver = Contacts.FirstOrDefault(x => Equals(x.Adress, message.FromPoint));
-
-                        if (receiver != null)
-                        {
-                            receiver.Dialog.Add(new Message(false, message.Text));
-                        }
-                    });                    
-                }
-
-                //получение информации о клиенте
-                if (respond is NetworkClient)
-                {
-                    var networkClient = (NetworkClient)respond;
-
-                    App.Current.Dispatcher.Invoke(delegate 
-                    {
-                        var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, networkClient.Adress));
-
-                        if (existingClient != null)
-                        {
-                            Contacts.Remove(existingClient);
-                        }
-                        else
-                        {
-                            Contacts.Add(new Contact( networkClient.Name, networkClient.Adress));
-                        }                            
-                    });
-                }
+                ProcessMessage(networkObject);
 
             }
         }
-        /// <summary>
-        /// отправка данных
-        /// </summary>
-        /// <param name="obj"></param>
-        private void SendData(object obj)
-        {
-            var stream = _client.GetStream();
-
-            var data = Helper.ObjectToByteArray(obj);
-
-            stream.Write(data, 0, data.Length);            
-        }
 
         /// <summary>
-        /// читает данные из потока и приводит к объекту
+        /// Обработка полученных данных
         /// </summary>
-        /// <param name="client"></param>
-        /// <returns></returns>
-        private object GetDataFromStream(TcpClient client)
+        /// <param name="networkObject"></param>
+        private void ProcessMessage(INetworkData networkObject)
         {
-            var stream = client.GetStream();
-
-            if (stream.CanRead)
+            switch (networkObject.NetworkObjectType)
             {
-                byte[] bytes = new byte[client.ReceiveBufferSize];
+                case NetworkObjectTypes.Contacts:
+                {
+                    var clientsCollection = (NetworkClientsCollection) networkObject;
 
-                if (stream.Read(bytes, 0, client.ReceiveBufferSize) > 0)
-                    return Helper.ByteArrayToObject(bytes);
+                    AddAllContacts(clientsCollection);
+                    break;
+                }
+                case NetworkObjectTypes.Message:
+                {
+                    var message = (NetworkMessage) networkObject;
 
-                return null;
+                    AddMessage(message);
+                    break;
+                }
+                case NetworkObjectTypes.ClientInfo:
+                {
+                    var networkClient = (NetworkClient) networkObject;
+
+                    AddContact(networkClient);
+                    break;
+                }
+                case NetworkObjectTypes.MessageDelivered:
+                {
+                    var messageState = (NetworkMessageState) networkObject;
+                    var isDelivered = messageState.IsDelivered;
+
+                    SetMessageState(isDelivered);
+
+                    break;
+                }
+                case NetworkObjectTypes.Command:
+                {
+                    var networkCommand = (NetworkCommand) networkObject;
+
+                    if (networkCommand.CommandType == NetworkCommandTypes.Disconnect)
+                    {
+                        CloseConnection();
+
+                    }
+                    if (networkCommand.CommandType == NetworkCommandTypes.ServerStop)
+                    {
+                        ClientStop();
+                    }
+                    break;
+                }
             }
+        }
 
-            return null;
+        private void AddMessage(NetworkMessage message)
+        {
+            Application.Current.Dispatcher.Invoke(delegate
+            {
+                var receiver = Contacts.FirstOrDefault(x => Equals(x.Adress, message.FromPoint));
+
+                if (receiver != null)
+                {
+                    receiver.Dialog.Add(new Message(false, message.Text, receiver.Name));
+
+                    if (receiver != SelectedUser)
+                    {
+                        receiver.HaveNewMessages = true;
+                    }
+                }
+            });
+        }
+
+        private void AddAllContacts(NetworkClientsCollection clientsCollection)
+        {
+            Application.Current.Dispatcher.Invoke(delegate
+            {
+                foreach (var networkClient in clientsCollection.NetworkClients)
+                {
+                    Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
+                }
+            });
+        }
+
+        private void AddContact(NetworkClient networkClient)
+        {
+            Application.Current.Dispatcher.Invoke(delegate
+            {
+                var existingClient = Contacts.FirstOrDefault(x => Equals(x.Adress, networkClient.Adress));
+
+                if (existingClient != null)
+                {
+                    Contacts.Remove(existingClient);
+                }
+                else
+                {
+                    Contacts.Add(new Contact(networkClient.Name, networkClient.Adress));
+                }
+            });
+        }
+
+        private void SetMessageState(bool isDelivered)
+        {
+            Application.Current.Dispatcher.Invoke(delegate
+            {
+                SelectedUser.Dialog.Add(new Message(true, Text, ClientName, isDelivered));
+                Text = "";
+            });
         }
 
         /// <summary>
@@ -232,18 +296,74 @@ namespace Client.ViewModel
         {
             var networkClient = new NetworkClient(ClientName, _client.Client.LocalEndPoint, false);
 
-            SendData(networkClient);        
+            _client.PutDataToStream(networkClient);
         }
 
-        public void CloseConnection()
+        /// <summary>
+        /// Отсылает сообщение об отключении на сервер и закрывает соединение
+        /// </summary>
+        private void CloseConnection()
         {
-            SendStateInfo();
+            try
+            {
+                if (_client != null && _client.Connected)
+                {
+                    SendStateInfo();
 
-            _ctThread.Abort();
-            _client.GetStream().Close();
-            _client.Close();
-            _client = null;
+                    _msThread.Abort();
+                }
+            }
+            finally
+            {
+                if (_client != null)
+                {
+                    _client.GetStream().Close();
+                    _client.Close();
+                    _client = null;
 
+                    SetTitle();
+                }
+            }
         }
+
+        /// <summary>
+        /// Закрывает соединение
+        /// </summary>
+        private void ClientStop()
+        {
+            try
+            {
+                if (_client != null && _client.Connected)
+                {
+                    _msThread.Abort();
+                }
+            }
+            finally
+            {
+                if (_client != null)
+                {
+                    _client.GetStream().Close();
+                    _client.Close();
+                    _client = null;
+
+                    SetTitle();
+                }
+            }
+        }
+
+        /// <summary>
+        /// устанавливает заголовок окна
+        /// </summary>
+        private void SetTitle()
+        {
+            if (_client == null || !_client.Connected)
+                Title = _clientName + " (Отключен)";
+            else
+            {
+                Title = _clientName + " (Подключен)";
+            }
+        }
+
+        #endregion
     }
 }
